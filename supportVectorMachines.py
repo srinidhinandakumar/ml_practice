@@ -1,3 +1,4 @@
+#%matplotlib notebook
 import matplotlib as mpl
 mpl.use('TkAgg')
 import matplotlib.pyplot as plt
@@ -7,10 +8,15 @@ import adspy_shared_utilities as utility
 from matplotlib.colors import ListedColormap
 from sklearn.svm import LinearSVC
 from sklearn.svm import SVC
+from sklearn.preprocessing import MinMaxScaler
+from sklearn.neighbors import KNeighborsClassifier
 from sklearn.datasets import make_classification, make_blobs, load_breast_cancer
 from sklearn.model_selection import train_test_split
+from sklearn.model_selection import cross_val_score
+from sklearn.model_selection import validation_curve
 from adspy_shared_utilities import (plot_class_regions_for_classifier_subplot)
 from adspy_shared_utilities import plot_class_regions_for_classifier
+
 
 #binary classification
 plt.figure()
@@ -115,3 +121,37 @@ for this_gamma, subplot in (zip([0.1, 1, 10], subaxes)):
     title = 'SVC RBF Kernel\nGamma: {:.2f}'.format(this_gamma)
     plot_class_regions_for_classifier(clf, X_train, y_train, None, None, title, subplot)
     plt.tight_layout()
+
+fig, subaxes = plt.subplots(3, 4, figsize=(15, 10), dpi=50)
+for this_gamma, this_axes in zip([0.01, 1.0, 10.0], subaxes):
+    for this_c, subplot in zip([0.01, 1, 10, 100],this_axes):
+        clf = SVC(kernel = 'rbf', gamma=this_gamma, C=this_c).fit(X_train, y_train)
+        title = 'Support Vector Classifier: \nRBF kernel, gamma = {:.2f}, C = {:.2f}'.format(this_gamma,this_c)
+        plot_class_regions_for_classifier_subplot(clf, X_train, y_train, None, None, title, subplot)
+        plt.tight_layout()
+#test SVM on breast cancer data
+X_train, X_test, y_train, y_test = train_test_split(X_cancer, y_cancer, random_state = 0)
+clf = SVC(C=10).fit(X_train, y_train)
+print('Accuracy training: {:.3f}'.format(clf.score(X_train, y_train)))
+print('Accuracy test: {:.3f}'.format(clf.score(X_test, y_test)))
+
+scaler = MinMaxScaler()
+X_train_scaled = scaler.fit_transform(X_train)
+X_test_scaled = scaler.transform(X_test)
+clf = SVC(C=10).fit(X_train_scaled, y_train)
+print('Accuracy training: {:.3f}'.format(clf.score(X_train_scaled, y_train)))
+print('Accuracy test: {:.3f}'.format(clf.score(X_test_scaled, y_test)))
+
+#Cross Validation for KNN
+clf = KNeighborsClassifier(n_neighbors = 5)
+X = X_fruits_2d.as_matrix()
+y = y_fruits_2d.as_matrix()
+cv_scores = cross_val_score(clf, X, y)
+
+print('Cross-validation scores (3-fold):', cv_scores)
+print('Mean cross-validation score (3-fold): {:.3f}'.format(np.mean(cv_scores)))
+
+param_range = np.logspace(-3, 3, 4)
+train_scores, test_scores = validation_curve(SVC(), X, y, param_name='gamma', param_range=param_range, cv=3)
+print(train_scores)
+print(test_scores)
